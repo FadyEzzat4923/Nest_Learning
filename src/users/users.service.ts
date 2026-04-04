@@ -13,18 +13,25 @@ export class UsersService {
   }
 
   create(createUserDto: CreateUserDto) {
+    createUserDto.id = crypto.randomUUID();
     this.users.push(createUserDto);
-    return createUserDto;
+    return { create: true };
   }
 
   findAll(role: string) {
-    return this.users.filter((u) => {
+    const users = this.users.filter((u) => {
       return role === '' ? u : u.role.includes(role);
     });
+    if (users.length === 0) throw new NotFoundException('No users found');
+    users.forEach((u) => (u.password = '********'));
+    return users;
   }
 
   findOne(id: string) {
-    return this.users.find((user) => user.id === id);
+    const user = this.users.find((user) => user.id === id);
+    if (!user) throw new NotFoundException('User not found');
+    user.password = '********';
+    return user;
   }
 
   update(id: string, updateUserDto: UpdateUserDto) {
@@ -32,10 +39,13 @@ export class UsersService {
     if (!user) throw new NotFoundException('User not found');
 
     Object.assign(user, updateUserDto);
-    return user;
+    this.users = this.users.map((u) => (u.id === id ? user : u));
+    return { updated: true };
   }
 
   remove(id: string) {
+    const user = this.users.find((u) => u.id === id);
+    if (!user) throw new NotFoundException('User not found');
     this.users = this.users.filter((u) => u.id !== id);
     return { deleted: true };
   }
